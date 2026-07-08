@@ -30,6 +30,10 @@ The skeleton is still early, but reviewing it revealed a few things I'll need to
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 
+One tradeoff I made is in how `detect_conflicts()` decides two tasks actually clash. Right now it treats the owner as if they only have one pair of hands, ever — if two tasks' time windows overlap at all, even by a minute, it flags them as a conflict, whether they belong to the same pet or two different pets. That's not really how a morning goes in real life. Filling two food bowls at 8:00 for two different pets isn't a real conflict; it's the kind of thing an owner can do in the same couple of minutes without thinking twice. But my scheduler has no way to know that — it only sees a start time and a duration, not how much attention a task actually demands.
+
+I did think about fixing this properly, maybe adding something like an `attention_level` field to `Task` so quick, low-effort tasks wouldn't trip the conflict check against each other. I decided not to go down that road for this version. It would mean a new field on every task, a second thing to reason about inside the conflict-checking logic, and a UI to let the owner set it — a lot of added surface area for a problem that's more of an annoyance than a real bug. Instead I leaned on the idea that it's better to warn too often than not enough: an owner can glance at a warning and shrug it off if it's a false alarm, but if the scheduler stayed quiet about a genuine double-booking — like two pets needing medication at the exact same moment — that's a much worse failure. It's the same instinct that shaped `generate_plan()`: I picked the simpler, greedy, easy-to-follow approach over a fully optimal one, knowing it would sometimes skip a task it technically could have fit, because I'd rather have logic I can trust and explain than logic that's clever but opaque.
+
 ---
 
 ## 3. AI Collaboration

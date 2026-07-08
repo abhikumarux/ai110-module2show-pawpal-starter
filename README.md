@@ -82,14 +82,12 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.sort_tasks_by_priority()`, `Scheduler.sort_tasks_by_time()` | Sorts tasks in-place either by priority rank (high → low) or by `start_time` ("HH:MM"), with untimed tasks pushed to the end. |
+| Filtering | `Scheduler.filter_tasks(completed=..., pet_name=...)`, `Scheduler.get_recurring_tasks()` | Returns tasks matching completion status and/or pet name (either filter is optional), or just the recurring ones. |
+| Conflict handling | `Scheduler.detect_conflicts()`, `Scheduler.get_conflict_warnings()`, `find_conflicts_across_schedulers()` | A lightweight O(n log n) sweep — sort timed tasks by start time, then compare each task only against the ones immediately after it, stopping as soon as a later task starts after the current one ends. Flags true time-window overlaps (not just exact start-time matches), returns human-readable warning strings instead of raising, and can check across multiple pets' schedulers since one owner can only be in one place at a time. |
+| Recurring tasks | `Task.create_next_occurrence()`, `Scheduler.complete_task()` | Marking a `daily` or `weekly` task complete via `complete_task()` automatically spawns a fresh, incomplete copy of it for the next occurrence and adds it back to the schedule. |
 
 ## 📸 Demo Walkthrough
 
