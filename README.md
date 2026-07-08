@@ -22,6 +22,19 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## Features
+
+| Feature | Description |
+|---|---|
+| **Priority-based scheduling** | `generate_plan()` sorts tasks high → medium → low before fitting them into the owner's daily time budget. High-priority tasks are always scheduled first. |
+| **Time budget enforcement** | The scheduler tracks remaining minutes and skips any task that no longer fits, reporting skipped tasks separately so nothing is silently dropped. |
+| **Chronological sorting** | `sort_tasks_by_time()` orders tasks by their fixed `start_time` field (HH:MM). Tasks with no start time are pushed to the end of the list. |
+| **Task filtering** | `filter_tasks(completed, pet_name)` returns subsets of tasks by completion status, pet, or both — useful for showing only what's left to do today. |
+| **Recurring task auto-spawn** | When `complete_task()` marks a `daily` or `weekly` recurring task done, it automatically creates a fresh incomplete copy for the next occurrence. |
+| **Conflict detection** | `detect_conflicts()` runs an O(n log n) sweep over timed tasks and flags any whose time windows overlap. Works within a single pet's schedule and across multiple pets via `find_conflicts_across_schedulers()`. |
+| **Conflict warnings** | `get_conflict_warnings()` returns human-readable warning strings (e.g., "⚠️ Morning Walk at 08:00 overlaps with Feeding at 08:15") that surface directly in the Streamlit UI before the schedule is generated. |
+| **Cross-pet conflict check** | Since one owner can only be in one place at a time, `find_conflicts_across_schedulers()` compares tasks across all pets and flags double-bookings. |
+
 ## Getting started
 
 ### Setup
@@ -123,12 +136,89 @@ The core scheduling behaviors — sorting, time budgeting, recurrence, and confl
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### UI Features
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The Streamlit app is organized into three sections:
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+- **Section 1 — Owner & Pet Setup:** Enter your name, daily available minutes, and preferred start time. Enter your pet's name, species, breed, and age. Hit "Save Owner & Pet" to create the `Owner`, `Pet`, and `Scheduler` objects in memory.
+- **Section 2 — Add Care Tasks:** Add tasks one at a time with a name, category, duration, priority, optional fixed start time, and recurrence setting. The task list displays immediately below, sorted by priority (high → medium → low). If any tasks have overlapping time windows, a conflict warning appears here — before you generate a plan — so you can fix it first.
+- **Section 3 — Generate Schedule:** Click "Generate Schedule" to run the scheduler. The plan renders as a clean time-slot table. Tasks that didn't fit within the time budget are listed separately in a warning so nothing is silently dropped.
+
+### Example Workflow
+
+1. Open the app with `streamlit run app.py`
+2. Enter owner name **Alex**, 120 available minutes, start time **08:00**
+3. Enter pet name **Biscuit**, dog, Golden Retriever, age 3 → click **Save Owner & Pet**
+4. Add task: *Morning Walk* — walk, 30 min, high priority, recurring daily, start 08:00
+5. Add task: *Feeding* — feeding, 10 min, high priority, recurring daily, start 08:15
+6. Add task: *Grooming* — grooming, 45 min, medium priority
+7. Add task: *Enrichment Puzzle* — enrichment, 20 min, low priority
+8. Notice the conflict warning: Morning Walk (08:00–08:30) overlaps Feeding (08:15)
+9. Click **Generate Schedule** — tasks appear in priority order with time slots assigned
+10. Any task that exceeded the time budget appears in the "Skipped" warning at the bottom
+
+### Key Scheduler Behaviors
+
+- **Sorting:** Tasks are always sorted high → medium → low before scheduling. Ties in priority preserve insertion order.
+- **Conflict warnings:** Shown inline below the task list so the owner can adjust start times before committing to a plan. Warnings also run across multiple pets — one owner can't be in two places at once.
+- **Recurrence:** Completing a daily task via `complete_task()` automatically adds a fresh copy for tomorrow, keeping recurring care tasks alive without manual re-entry.
+- **Skipped tasks:** If the time budget runs out, lower-priority tasks are skipped and reported — never silently dropped.
+
+### Sample CLI Output (`python3 main.py`)
+
+```
+==================================================
+        TODAY'S SCHEDULE
+        Owner: Alex
+==================================================
+
+Daily plan for Biscuit (Golden Retriever):
+  08:00 – 08:30  Morning Walk (30 min) [priority: high]
+  08:30 – 08:40  Feeding (10 min) [priority: high]
+  08:40 – 09:25  Grooming (45 min) [priority: medium]
+  09:25 – 09:45  Enrichment Puzzle (20 min) [priority: low]
+
+Daily plan for Luna (Siamese):
+  08:00 – 08:05  Medication (5 min) [priority: high]
+  08:05 – 08:15  Feeding (10 min) [priority: high]
+  08:15 – 08:30  Playtime (15 min) [priority: medium]
+
+==================================================
+
+==================================================
+        SORTING & FILTERING DEMO
+==================================================
+
+--- Biscuit ---
+Tasks sorted by time:
+  08:00  Morning Walk [Biscuit] — completed: True
+  08:15  Feeding [Biscuit] — completed: False
+  12:30  Enrichment Puzzle [Biscuit] — completed: False
+  17:00  Grooming [Biscuit] — completed: False
+Incomplete tasks:
+  08:15  Feeding [Biscuit] — completed: False
+  12:30  Enrichment Puzzle [Biscuit] — completed: False
+  17:00  Grooming [Biscuit] — completed: False
+Completed tasks:
+  08:00  Morning Walk [Biscuit] — completed: True
+Conflicts:
+  ⚠️  Conflict: Morning Walk at 08:00 overlaps with Feeding at 08:15.
+
+--- Luna ---
+Tasks sorted by time:
+  08:00  Medication [Luna] — completed: False
+  08:00  Feeding [Luna] — completed: True
+  18:00  Playtime [Luna] — completed: False
+Conflicts:
+  ⚠️  Conflict: Medication at 08:00 overlaps with Feeding at 08:00.
+
+==================================================
+        CROSS-PET CONFLICT CHECK
+==================================================
+(One owner can't do two things at once, even for different pets.)
+
+  ⚠️  Conflict: Morning Walk (Biscuit) at 08:00 overlaps with Medication (Luna) at 08:00 — the owner can't do both at once.
+  ⚠️  Conflict: Morning Walk (Biscuit) at 08:00 overlaps with Feeding (Luna) at 08:00 — the owner can't do both at once.
+
+==================================================
+```
