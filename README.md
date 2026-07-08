@@ -66,19 +66,51 @@ Daily plan for Luna (Siamese):
 
 ## 🧪 Testing PawPal+
 
+Run the full test suite from the project root:
+
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python3 -m pytest -v
 ```
 
-Sample test output:
+### What the tests cover
+
+| Area | Tests |
+|---|---|
+| Task completion | `mark_complete()` flips `completed` to `True` |
+| Task addition | Adding tasks grows the scheduler's task list correctly |
+| Priority sorting | Tasks come out `high → medium → low` after `sort_tasks_by_priority()` |
+| Time sorting | Tasks ordered chronologically by `start_time`; untimed tasks pushed last |
+| Recurrence | Completing a daily recurring task spawns a fresh copy; non-recurring tasks do not |
+| Conflict detection | Overlapping time windows are flagged; non-overlapping and empty schedulers are clean |
+| Edge cases | No tasks, task over budget, and task exactly filling budget all handled correctly |
+
+### Test run output
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+platform darwin -- Python 3.14.2, pytest-9.1.1, pluggy-1.6.0
+collected 13 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [  7%]
+tests/test_pawpal.py::test_adding_task_increases_scheduler_count PASSED  [ 15%]
+tests/test_pawpal.py::test_sort_by_priority_orders_high_to_low PASSED    [ 23%]
+tests/test_pawpal.py::test_sort_by_time_orders_chronologically PASSED    [ 30%]
+tests/test_pawpal.py::test_sort_by_time_pushes_untimed_tasks_last PASSED [ 38%]
+tests/test_pawpal.py::test_completing_recurring_task_spawns_new_occurrence PASSED [ 46%]
+tests/test_pawpal.py::test_completing_non_recurring_task_does_not_spawn PASSED [ 53%]
+tests/test_pawpal.py::test_two_overlapping_tasks_flagged_as_conflict PASSED [ 61%]
+tests/test_pawpal.py::test_non_overlapping_tasks_have_no_conflicts PASSED [ 69%]
+tests/test_pawpal.py::test_no_tasks_returns_no_conflicts PASSED          [ 76%]
+tests/test_pawpal.py::test_generate_plan_with_no_tasks_returns_empty PASSED [ 84%]
+tests/test_pawpal.py::test_task_exceeding_budget_is_skipped PASSED       [ 92%]
+tests/test_pawpal.py::test_task_exactly_filling_budget_is_scheduled PASSED [100%]
+
+============================== 13 passed in 0.01s ==============================
 ```
+
+### Confidence Level: ⭐⭐⭐⭐ (4/5)
+
+The core scheduling behaviors — sorting, time budgeting, recurrence, and conflict detection — are all verified across both happy paths and key edge cases. The missing star reflects that the UI layer (Streamlit interactions) and cross-pet conflict logic aren't covered by automated tests yet, and a few real-world edge cases (e.g., tasks with identical names, invalid time formats) are untested.
 
 ## 📐 Smarter Scheduling
 
